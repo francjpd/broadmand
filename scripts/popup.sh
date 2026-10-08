@@ -55,7 +55,9 @@ bind '"\C-c": abort' 2>/dev/null || true
 # there makes the popup exit immediately. Omit -i on bash < 4.
 # -p writes the prompt to stderr (visible in the popup terminal).
 on_exit() {
-  [ -n "${BROADCAST_POPUP_INPUTRC:-}" ] && rm -f "$BROADCAST_POPUP_INPUTRC" 2>/dev/null || true
+  if [ -n "${BROADCAST_POPUP_INPUTRC:-}" ]; then
+    rm -f "$BROADCAST_POPUP_INPUTRC" 2>/dev/null || true
+  fi
 }
 trap on_exit EXIT
 
