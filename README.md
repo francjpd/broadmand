@@ -1,6 +1,6 @@
-# broadmand-tmux
+# broadmand
 
-![broadmand-tmux logo](broadmand.png)
+![broadmand logo](broadmand.png)
 
 Broadcast a shell command to every pane of the active tmux window. Ships
 with a modal-style `cd` picker and a free-form command broadcaster.
@@ -65,11 +65,26 @@ in the tmux status line when the broadcast finishes.
 
 ## Requirements
 
-- tmux
-- bash
+- tmux **3.3 or newer** — the popups use `display-popup -T`, added in
+  tmux 3.3
+- bash **3.2 or newer** (the macOS system bash is sufficient)
 - `fzf` (used by the directory picker)
 - `fd` or `zoxide` (picker engine; install the one matching
   `@broadcast-picker-engine`)
+
+### Platform support
+
+| Platform          | Status                                                |
+| ----------------- | ----------------------------------------------------- |
+| Linux             | Supported                                             |
+| macOS             | Supported with tmux >= 3.3 and bash >= 3.2            |
+| WSL2              | Supported (works as Linux; a dash `/bin/sh` is fine)  |
+| Native Windows    | Not supported (tmux does not exist there)             |
+| MSYS2 / Cygwin    | Not supported                                         |
+
+The popup title flag (`display-popup -T`) is why the floor is tmux 3.3;
+on tmux 3.2 the popup otherwise fails and the plugin reports a bare
+"cancelled".
 
 ## Install with TPM
 
@@ -82,7 +97,7 @@ set -g @plugin 'tmux-plugins/tpm'
 2. Add this plugin:
 
 ```tmux
-set -g @plugin 'francjpd/broadmand-tmux'
+set -g @plugin 'francjpd/broadmand'
 ```
 
 3. Initialize TPM at the bottom of your `~/.config/tmux/tmux.conf`:
@@ -96,8 +111,8 @@ run '~/.tmux/plugins/tpm/tpm'
 ## Install (manual)
 
 ```sh
-git clone git@github.com:francjpd/broadmand-tmux.git \
-  ~/.tmux/plugins/broadmand-tmux
+git clone git@github.com:francjpd/broadmand.git \
+  ~/.tmux/plugins/broadmand
 ```
 
 Add this to your `tmux.conf` and reload with `prefix r`:
@@ -105,7 +120,7 @@ Add this to your `tmux.conf` and reload with `prefix r`:
 ```tmux
 set -g @broadcast-run-key       'd'
 set -g @broadcast-cd-picker-key 'D'
-run-shell '~/.tmux/plugins/broadmand-tmux/broadmand.tmux'
+run-shell '~/.tmux/plugins/broadmand/broadmand.tmux'
 ```
 
 ## Configuration
@@ -135,8 +150,26 @@ drop-in config block.
 4. `broadcast.sh` walks all panes in the active window, skipping excluded
    commands and panes in copy mode, and sends `C-u` + literal line +
    `Enter` to each.
-5. A short summary is printed to stderr, which `tmux run-shell` displays
-   in the status line without cluttering the active pane.
+5. `broadcast.sh` finishes by showing `broadmand: sent=N skipped=N` in the
+   tmux status line with `display-message`, because `run-shell` discards
+   stderr. `--dry-run` prints the same summary to stdout for testing.
+
+## Testing
+
+The suite needs only `bash` and `tmux`; `fzf`, `fd`, and `zoxide` are
+stubbed where needed so it stays deterministic. It uses an isolated
+`HOME` and `TMPDIR`.
+
+```sh
+bash tests/run.sh
+```
+
+It runs `bash -n` on every shell file (plus ShellCheck when installed),
+the `util.sh` helper unit tests, a headless-tmux integration test for
+loading, keybindings and broadcast skip logic, the broadcast-count
+regression, a pty-driven popup test, the picker preview check, and the
+picker-stream test. `.github/workflows/ci.yml` runs the suite on Linux
+and on macOS (bash 3.2 + BSD `ls`).
 
 ## License
 

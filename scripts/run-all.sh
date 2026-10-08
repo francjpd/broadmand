@@ -16,8 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # display-popup -E propagates exit status but NOT stdout.
 # Use a temp file to capture the popup's output.
-_out=$(mktemp /tmp/broadmand-run.XXXXXX) || die "failed to create temp file"
-trap "rm -f '$_out'" EXIT
+_out=$(mktemp "${TMPDIR:-/tmp}/broadmand-run.XXXXXX") || die "failed to create temp file"
+trap 'rm -f "$_out"' EXIT
 
 # Run the popup from the active pane's cwd so Tab completion resolves
 # relative paths the same way the user's shell would.

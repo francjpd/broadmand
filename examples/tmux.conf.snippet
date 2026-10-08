@@ -1,16 +1,16 @@
-# broadmand-tmux — install snippet
+# broadmand — install snippet
 # Drop into your ~/.config/tmux/tmux.conf
 
 # 1. Install (TPM, recommended):
 #    set -g @plugin 'tmux-plugins/tpm'
-#    set -g @plugin 'francjpd/broadmand-tmux'
+#    set -g @plugin 'francjpd/broadmand'
 #    run '~/.tmux/plugins/tpm/tpm'
 #
 # 2. Or install manually:
-#    git clone git@github.com:francjpd/broadmand-tmux.git \
-#      ~/.tmux/plugins/broadmand-tmux
+#    git clone git@github.com:francjpd/broadmand.git \
+#      ~/.tmux/plugins/broadmand
 
-# ----- broadmand-tmux configuration -----
+# ----- broadmand configuration -----
 
 # Keybinds
 set -g @broadcast-run-key       'd'
@@ -27,6 +27,6 @@ set -g @broadcast-excluded 'vim,vi,nvim,less,man,ssh,htop,top,mc,opencode,claude
 set -g @broadcast-pane-delay '5'
 
 # Load the plugin (TPM or manual install path)
-if-shell -b '[ -d ~/.tmux/plugins/broadmand-tmux ]' {
-  run-shell '~/.tmux/plugins/broadmand-tmux/broadmand.tmux'
+if-shell -b '[ -d ~/.tmux/plugins/broadmand ]' {
+  run-shell '~/.tmux/plugins/broadmand/broadmand.tmux'
 }

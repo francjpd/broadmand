@@ -1,31 +1,19 @@
-# broadmand-tmux — entrypoint sourced from the user's tmux.conf.
+#!/usr/bin/env bash
+# broadmand — entrypoint loaded from the user's tmux.conf.
 #
 # TPM install:
-#   set -g @plugin 'francjpd/broadmand-tmux'
+#   set -g @plugin 'francjpd/broadmand'
 #   run '~/.tmux/plugins/tpm/tpm'
 #
 # Manual install:
-#   run-shell "~/.tmux/plugins/broadmand-tmux/broadmand.tmux"
+#   run-shell "~/.tmux/plugins/broadmand/broadmand.tmux"
 #
-# This file must be POSIX-shell compatible because tmux run-shell uses
-# the user's default shell (often dash on Debian/Ubuntu). It simply
-# locates bash and re-execs the bash entrypoint.
+# tmux run-shell executes commands with /bin/sh (dash on Debian/Ubuntu) and
+# TPM runs each *.tmux file as an executable. The bash shebang above makes
+# both paths run this file under bash, so the bash-only entrypoint below can
+# be sourced without a manual re-exec.
 
-CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Prefer bash from PATH; fall back to common absolute paths.
-BASH_CMD=""
-for cmd in bash /usr/bin/bash /bin/bash; do
-  if command -v "$cmd" >/dev/null 2>&1; then
-    BASH_CMD="$cmd"
-    break
-  fi
-done
-
-if [ -z "$BASH_CMD" ]; then
-  printf 'broadmand-tmux: bash is required but not found\n' >&2
-  return 1 2>/dev/null || exit 1
-fi
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=broadmand.bash
 . "$CURRENT_DIR/broadmand.bash"

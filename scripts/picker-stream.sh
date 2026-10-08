@@ -26,26 +26,24 @@ ENGINE=$(broadcast_picker_engine)
 query="${1:-}"
 root="${BROADCAST_FALLBACK_ROOT:-$HOME}"
 
+# Fail loudly for an unknown or unavailable engine instead of emitting an
+# empty stream (which looks like "no directories found").
+case "$ENGINE" in
+  fd|zoxide|both) ;;
+  *)
+    printf 'broadmand: unknown picker engine: %s\n' "$ENGINE" >&2
+    exit 1
+    ;;
+esac
+if [ "$(picker_engine_available "$ENGINE")" != "yes" ]; then
+  printf 'broadmand: picker engine %s is not available; install it or set @broadcast-picker-engine\n' "$ENGINE" >&2
+  exit 1
+fi
+
 FD_CMD=$(find_fd)
 
-# Normalize a path: expand leading ~, resolve relative paths against the
-# active pane's cwd ($root), and strip trailing slashes (except for /).
-__normalize_path() {
-  local p="${1:-}"
-  [ -z "$p" ] && return 0
-  p="${p/#\~/$HOME}"
-  case "$p" in
-    /*) ;;
-    *)  p="$root/$p" ;;
-  esac
-  while [ "$p" != "${p%/}" ] && [ "$p" != "/" ]; do
-    p="${p%/}"
-  done
-  printf '%s' "$p"
-}
-
 # Maximum directory depth for fd scans. A value of 3 means the search
-# root plus two levels of subdirectories, which keeps the picker fast
+# root plus three subdirectory levels, which keeps the picker fast
 # on large home directories (notably macOS with deep Library trees).
 FD_MAX_DEPTH=3
 
@@ -109,7 +107,7 @@ __initial_stream() {
 if [ -z "$query" ]; then
   __initial_stream
 else
-  target=$(__normalize_path "$query")
+  target=$(normalize_path "$query" "$root")
   if [ -d "$target" ]; then
     # Directory path typed: show it plus its subdirectories.
     printf '%s\n' "$target"

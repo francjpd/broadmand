@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: Linux (bash, GNU userland)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux shellcheck python3
+
+      - name: Run test suite
+        run: bash tests/run.sh
+
+  macos:
+    name: macOS (bash 3.2, BSD ls)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install tmux shellcheck
+
+      - name: Run test suite under the system bash 3.2
+        run: /bin/bash tests/run.sh

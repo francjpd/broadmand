@@ -1,4 +1,4 @@
-# broadmand.bash — bash entrypoint for broadmand-tmux.
+# broadmand.bash — bash entrypoint for broadmand.
 # Sourced by broadmand.tmux under an explicit bash interpreter.
 #
 # Loads defaults and emits the keybindings.

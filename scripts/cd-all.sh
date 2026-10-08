@@ -22,10 +22,11 @@ active_cwd=$(tmux display-message -p '#{pane_current_path}')
 
 # display-popup -E propagates exit status but NOT stdout.
 # Use a temp file to capture the popup's output.
-_out=$(mktemp /tmp/broadcast-cd.XXXXXX) || die "failed to create temp file"
-trap "rm -f '$_out'" EXIT
+_out=$(mktemp "${TMPDIR:-/tmp}/broadcast-cd.XXXXXX") || die "failed to create temp file"
+trap 'rm -f "$_out"' EXIT
 
 if [ "$mode" = "picker" ]; then
+  require_picker_engine
   tmux display-popup \
     -E -w 60% -h 40% \
     -T "pick directory" \
