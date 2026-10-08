@@ -1,0 +1,4 @@
+# ShellCheck configuration for broadmand.
+# Follow the relative `source=` directives in the scripts.
+external-sources=true
+source-path=SCRIPTDIR

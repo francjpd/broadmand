@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # scripts/broadcast.sh — run a shell line in every pane of the active window.
-# Part of broadmand-tmux.
+# Part of broadmand.
 #
 # Usage:
 #   broadcast.sh "<shell-line>" [--include-active] [--dry-run]
 #
 # Skips panes whose current command is in the @broadcast-excluded list
 # and panes that are currently in copy mode.
+#
+# The loop reads pane ids through process substitution so the sent/skipped
+# counters stay in this shell instead of dying in a pipeline subshell.
+# In --dry-run mode the [done] summary is printed to stdout; otherwise the
+# summary is shown in the tmux status line with display-message, because
+# run-shell discards stderr.
 
 set -euo pipefail
 
@@ -35,7 +41,7 @@ active_id=$(active_pane_id)
 sent=0
 skipped=0
 
-active_pane_ids | while IFS= read -r pid; do
+while IFS= read -r pid; do
   [ -n "$pid" ] || continue
 
   if [ "$pid" != "$active_id" ] || [ "$include_active" = "1" ]; then
@@ -68,9 +74,13 @@ active_pane_ids | while IFS= read -r pid; do
 
   send_to_pane "$pid" "$line"
   sent=$((sent+1))
-done
+done < <(active_pane_ids)
 
 # Return focus to the originally active pane.
 tmux select-pane -t "$active_id" >/dev/null 2>&1 || true
 
-printf '[done ] sent=%d skipped=%d\n' "$sent" "$skipped" >&2
+if [ "$dry_run" = "1" ]; then
+  printf '[done ] sent=%d skipped=%d\n' "$sent" "$skipped"
+else
+  tmux display-message "broadmand: sent=$sent skipped=$skipped" 2>/dev/null || true
+fi

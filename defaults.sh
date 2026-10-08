@@ -1,10 +1,13 @@
-# defaults.sh — broadmand-tmux configuration surface.
+# shellcheck shell=bash
+# shellcheck disable=SC2034
+# defaults.sh — broadmand configuration surface.
 # This file defines every @-option name and its default value.
 # Sourced by broadmand.bash and by worker scripts via util.sh.
 
 # Sanity check: tmux must be available.
 command -v tmux >/dev/null 2>&1 || {
-  printf 'broadmand-tmux: tmux not found in PATH\n' >&2
+  printf 'broadmand: tmux not found in PATH\n' >&2
+  # shellcheck disable=SC2317  # exit is for the executed (not sourced) case.
   return 1 2>/dev/null || exit 1
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/popup.sh — reusable single-line input modal with Tab completion.
-# Part of broadmand-tmux.
+# Part of broadmand.
 #
 # Usage (inside a tmux display-popup -E):
 #   popup.sh "<default>" [<cwd>]
@@ -28,7 +28,7 @@ fi
 # - Tab cycles forward through matches, Shift-Tab cycles backward.
 # - If no common prefix can be inserted, show the full list immediately.
 # - Append file-type indicators (/ for dirs, * for executables, etc.).
-_inputrc=$(mktemp /tmp/broadmand-popup-inputrc.XXXXXX) || true
+_inputrc=$(mktemp "${TMPDIR:-/tmp}/broadmand-popup-inputrc.XXXXXX") || true
 if [ -n "${_inputrc:-}" ]; then
   {
     printf 'set show-all-if-ambiguous on\n'
@@ -55,7 +55,9 @@ bind '"\C-c": abort' 2>/dev/null || true
 # there makes the popup exit immediately. Omit -i on bash < 4.
 # -p writes the prompt to stderr (visible in the popup terminal).
 on_exit() {
-  [ -n "${BROADCAST_POPUP_INPUTRC:-}" ] && rm -f "$BROADCAST_POPUP_INPUTRC" 2>/dev/null || true
+  if [ -n "${BROADCAST_POPUP_INPUTRC:-}" ]; then
+    rm -f "$BROADCAST_POPUP_INPUTRC" 2>/dev/null || true
+  fi
 }
 trap on_exit EXIT
 

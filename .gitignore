@@ -1,5 +1,5 @@
-# broadmand-tmux plugin directory (path used for sourcing)
-.broadmand-tmux-path
+# broadmand plugin directory (path used for sourcing)
+.broadmand-path
 
 # OS / editor cruft
 .DS_Store
@@ -7,6 +7,3 @@ Thumbs.db
 *.swp
 *.swo
 *~
-
-# Test artifacts
-/tmp/broadmand-tmux.*
