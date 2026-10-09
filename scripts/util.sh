@@ -40,24 +40,33 @@ broadcast_status() {
   esac
 }
 
-# Extract every string value for `"<key>":"value"` from herdr's JSON reply on
-# stdin, one per line. The fields broadmand reads (pane/workspace ids, cwd,
-# process names) are plain strings with no embedded quotes or escapes, so a
+# Extract every value for `"<key>":<value>` from herdr's JSON reply on stdin,
+# one per line. Values are either quoted strings (pane/workspace ids, cwd,
+# process names) or bare integers (pid, foreground_process_group_id). The
+# string fields broadmand reads have no embedded quotes or escapes, so a
 # targeted match keeps the scripts free of a JSON parser dependency.
 herdr_json_field() {
   local key="$1"
   awk -v key="$key" '
     {
       line = $0
-      pat = "\"" key "\":\""
+      pat = "\"" key "\":"
       for (;;) {
         i = index(line, pat)
         if (i == 0) break
         line = substr(line, i + length(pat))
-        j = index(line, "\"")
-        if (j == 0) break
-        print substr(line, 1, j - 1)
-        line = substr(line, j + 1)
+        if (substr(line, 1, 1) == "\"") {
+          line = substr(line, 2)
+          j = index(line, "\"")
+          if (j == 0) break
+          print substr(line, 1, j - 1)
+          line = substr(line, j + 1)
+        } else if (match(line, /^[0-9]+/)) {
+          print substr(line, 1, RLENGTH)
+          line = substr(line, RLENGTH + 1)
+        } else {
+          break
+        }
       }
     }
   '
@@ -122,10 +131,12 @@ herdr_active_workspace_id() {
 
 # All pane IDs in the active Herdr workspace, one per line.
 herdr_active_pane_ids() {
-  local wid
+  local wid panes
   wid=$(herdr_active_workspace_id) \
     || die "could not resolve the active Herdr workspace"
-  herdr pane list --workspace "$wid" 2>/dev/null | herdr_json_field pane_id
+  panes=$(herdr pane list --workspace "$wid" 2>/dev/null | herdr_json_field pane_id)
+  [ -n "$panes" ] || die "could not list the panes of the active Herdr workspace"
+  printf '%s\n' "$panes"
 }
 
 # Get the active pane id.
@@ -180,13 +191,33 @@ pane_command() {
 }
 
 # Foreground process name of a Herdr pane, the analog of tmux's
-# pane_current_command. process-info reports the foreground process group; its
-# first entry is the command running in the foreground (the shell itself when
-# the pane is at a prompt).
+# pane_current_command. process-info reports the foreground process group,
+# ordered by ascending pid, so the foreground command is the process whose
+# pid equals foreground_process_group_id - the group leader - not the first
+# (lowest-pid) entry. The leader is the shell itself when the pane is at a
+# prompt.
 herdr_pane_command() {
-  local json
+  local json gid
   json=$(herdr pane process-info --pane "$1" 2>/dev/null) || { printf ''; return 0; }
-  printf '%s\n' "$json" | herdr_json_field name | head -n 1
+  gid=$(printf '%s\n' "$json" | herdr_json_field foreground_process_group_id | head -n 1)
+  [ -n "$gid" ] || { printf ''; return 0; }
+  printf '%s\n' "$json" | awk -v gid="$gid" '
+    {
+      rest = $0
+      while (match(rest, /"name":"[^"]*"/)) {
+        name = substr(rest, RSTART + 8, RLENGTH - 9)
+        tail = substr(rest, RSTART + RLENGTH)
+        if (match(tail, /"pid":[0-9]+/)) {
+          pid = substr(tail, RSTART + 6, RLENGTH - 6)
+          if (pid == gid) {
+            print name
+            exit
+          }
+        }
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+    }
+  '
 }
 
 # Is the pane currently in any tmux mode (copy mode, etc.)? Echoes yes/no.

@@ -35,6 +35,10 @@ case "$cmd" in
         printf '%s\n' '{"id":"test","result":{"pane":{"pane_id":"w1:p1","workspace_id":"w1","cwd":"/home/user","foreground_cwd":"/home/user/project","focused":true},"type":"pane_current"}}'
         ;;
       list)
+        if [ "${FAKE_HERDR_FAIL_LIST:-}" = "1" ]; then
+          printf '%s\n' '{"id":"test","result":{"panes":[],"type":"pane_list"}}'
+          exit 0
+        fi
         case "${4:-}" in
           w1)
             printf '%s\n' '{"id":"test","result":{"panes":[{"pane_id":"w1:p1","workspace_id":"w1"},{"pane_id":"w1:p2","workspace_id":"w1"},{"pane_id":"w1:p3","workspace_id":"w1"}],"type":"pane_list"}}'
@@ -48,9 +52,14 @@ case "$cmd" in
         esac
         ;;
       process-info)
-        name=bash
-        [ "${4:-}" = "w1:p2" ] && name=vim
-        printf '{"id":"test","result":{"process_info":{"foreground_processes":[{"name":"%s"}],"pane_id":"%s"},"type":"pane_process_info"}}\n' "$name" "${4:-}"
+        case "${4:-}" in
+          w1:p2)
+            printf '{"id":"test","result":{"process_info":{"foreground_processes":[{"name":"sudo","pid":5379},{"name":"vim","pid":5541}],"foreground_process_group_id":5541,"pane_id":"w1:p2"},"type":"pane_process_info"}}\n'
+            ;;
+          *)
+            printf '{"id":"test","result":{"process_info":{"foreground_processes":[{"name":"sudo","pid":5379},{"name":"bash","pid":5541}],"foreground_process_group_id":5541,"pane_id":"%s"},"type":"pane_process_info"}}\n' "${4:-}"
+            ;;
+        esac
         ;;
       send-keys)
         printf 'send-keys %s %s\n' "${3:-}" "${4:-}" >> "$LOG"
@@ -78,6 +87,11 @@ chmod +x "$BIN/herdr"
 export FAKE_HERDR_LOG="$TMPDIR/herdr.log"
 export HERDR_ENV=1
 export PATH="$BIN:$PATH"
+
+# --- the foreground command is the process-group leader, not the lowest pid ---
+got_cmd=$("$BASH" -c '. "$1/scripts/util.sh"; pane_command w1:p2' -- "$REPO_DIR")
+assert_eq "herdr pane command is the foreground process group leader" "vim" "$got_cmd"
+assert_not_contains "herdr pane command ignores the lower-pid wrapper" "$got_cmd" "sudo"
 
 # --- dry-run: enumerate the active workspace, skip excluded and active ---
 out=$("$BASH" "$REPO_DIR/scripts/broadcast.sh" 'echo hi' --include-active --dry-run)
@@ -122,6 +136,23 @@ assert_contains "unresolvable workspace explains itself" \
   "$(cat "$TMPDIR/herdr-fail.err" 2>/dev/null || true)" \
   "could not resolve the active Herdr"
 unset FAKE_HERDR_FAIL_CURRENT
+
+# --- an empty pane list fails loudly rather than reporting sent=0 skipped=0 ---
+FAKE_HERDR_FAIL_LIST=1
+export FAKE_HERDR_FAIL_LIST
+if ("$BASH" "$REPO_DIR/scripts/broadcast.sh" 'echo hi' --include-active --dry-run) \
+    >"$TMPDIR/herdr-list-fail.out" 2>"$TMPDIR/herdr-list-fail.err"; then
+  _fail "herdr broadcast fails when the pane list is empty"
+else
+  _pass "herdr broadcast fails when the pane list is empty"
+fi
+assert_contains "empty pane list explains itself" \
+  "$(cat "$TMPDIR/herdr-list-fail.err" 2>/dev/null || true)" \
+  "could not list the panes"
+assert_not_contains "empty pane list reports no phantom success" \
+  "$(cat "$TMPDIR/herdr-list-fail.out" 2>/dev/null || true)" \
+  "sent=0 skipped=0"
+unset FAKE_HERDR_FAIL_LIST
 
 # --- the modal cd picker works under Herdr and broadcasts `cd <dir>` ---
 cat > "$BIN/fzf" <<'FZF'
