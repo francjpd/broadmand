@@ -159,10 +159,11 @@ run-shell '~/.tmux/plugins/broadmand/broadmand.tmux'
 
 Inside [Herdr](https://herdr.dev), broadmand ships a `herdr-plugin.toml`
 manifest, so it can be installed and driven from Herdr instead of only from
-`tmux.conf`. The manifest declares two popup pane entrypoints and two actions —
-one for the free-form command broadcast, one for the modal `cd` picker — both
-running the same `scripts/run-all.sh` and `scripts/cd-all.sh picker` scripts the
-tmux path uses.
+`tmux.conf`. The manifest declares two popup pane entrypoints — one for the
+free-form command broadcast, one for the modal `cd` picker — that run the same
+`scripts/run-all.sh` and `scripts/cd-all.sh picker` scripts the tmux path uses.
+Two matching actions open those popup panes, so a `plugin_action` keybinding can
+reach them.
 
 ### Install from GitHub
 
@@ -206,7 +207,9 @@ command = "broadmand.cd-picker"
 `prefix+d` / `prefix+shift+d` mirror broadmand's tmux `prefix d` / `prefix D`.
 Change the keys if either is already bound (for example to detach in a
 tmux-style config). The action ids are the manifest's `[[actions]]` ids,
-qualified with the plugin id (`broadmand.<id>`).
+qualified with the plugin id (`broadmand.<id>`). Each action opens the
+corresponding popup pane, so pressing the key shows the same interactive popup
+as the tmux binding.
 
 Without keybindings, the same actions are reachable from the CLI —
 `herdr plugin action invoke broadmand.broadcast` (or `broadmand.cd-picker`) —
@@ -237,6 +240,21 @@ git clone git@github.com:francjpd/broadmand.git
   GitHub repositories carrying the `herdr-plugin` topic on their default
   branch; this repository is tagged, so `herdr plugin install
   francjpd/broadmand` is also discoverable there.
+
+### Verified against Herdr
+
+This manifest and install path were checked against Herdr **0.8.2**
+(`herdr --version`). The CLI surface was confirmed on that binary: `herdr
+plugin install`, `plugin link`, `plugin action invoke`, and `plugin pane open
+--plugin <id> --entrypoint <id>` all exist. The manifest fields
+(`min_herdr_version`, `contexts`, `placement`, `width`, `height`) and the
+`type = "plugin_action"` keybinding type match the 0.8.2 plugin schema, and
+runtime commands (actions included) receive `HERDR_ENV=1` and `HERDR_BIN_PATH`.
+
+The interactive popup flow (opening a popup pane and driving the
+broadcaster/picker) was not exercised headlessly, since it needs a running
+Herdr session and a terminal; `plugin install`/`link` were not run so as not to
+mutate the local Herdr state.
 
 ## Configuration
 

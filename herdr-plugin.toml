@@ -18,20 +18,22 @@ platforms = ["linux", "macos"]
 
 # Actions are the targets for `herdr plugin action invoke` and for
 # `type = "plugin_action"` keybindings; Herdr qualifies them as
-# `broadmand.<id>`.
+# `broadmand.<id>`. Actions run detached with no terminal, so instead of
+# running the interactive scripts directly each action opens the matching
+# popup pane entrypoint below (which has a terminal).
 [[actions]]
 id = "broadcast"
 title = "Broadcast command"
-description = "Broadcast a free-form shell command to every pane of the active workspace"
+description = "Open the broadcast command popup"
 contexts = ["workspace"]
-command = ["bash", "scripts/run-all.sh"]
+command = ["bash", "scripts/herdr-action.sh", "broadcast"]
 
 [[actions]]
 id = "cd-picker"
 title = "cd picker"
-description = "Pick a directory with fzf, then broadcast `cd <dir>` to every pane"
+description = "Open the cd picker popup"
 contexts = ["workspace"]
-command = ["bash", "scripts/cd-all.sh", "picker"]
+command = ["bash", "scripts/herdr-action.sh", "cd-picker"]
 
 # Popup pane entrypoints: `herdr plugin pane open --plugin broadmand
 # --entrypoint <id>` (or the Herdr plugin UI). Both behaviours are interactive,
