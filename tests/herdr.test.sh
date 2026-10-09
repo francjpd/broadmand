@@ -89,6 +89,7 @@ export HERDR_ENV=1
 export PATH="$BIN:$PATH"
 
 # --- the foreground command is the process-group leader, not the lowest pid ---
+# shellcheck disable=SC2016  # "$1" is the inner shell's positional parameter
 got_cmd=$("$BASH" -c '. "$1/scripts/util.sh"; pane_command w1:p2' -- "$REPO_DIR")
 assert_eq "herdr pane command is the foreground process group leader" "vim" "$got_cmd"
 assert_not_contains "herdr pane command ignores the lower-pid wrapper" "$got_cmd" "sudo"
