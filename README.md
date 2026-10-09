@@ -68,13 +68,9 @@ Detection is a single check: if `HERDR_ENV` is `1`, broadmand talks to
 If the active workspace cannot be resolved unambiguously, broadmand fails
 with a clear message rather than broadcasting to the wrong panes.
 
-The `prefix d` / `prefix D` bindings are tmux features; under Herdr invoke the
-scripts directly (or point Herdr keybindings at them):
-
-```sh
-~/.tmux/plugins/broadmand/scripts/run-all.sh            # free-form broadcast
-~/.tmux/plugins/broadmand/scripts/cd-all.sh picker       # cd picker
-```
+The `prefix d` / `prefix D` bindings are tmux features; under Herdr the same two
+behaviours are installed and bound through the plugin entrypoints, actions, and
+keybindings described under [Install under Herdr](#install-under-herdr).
 
 Herdr has no `@-option` surface, so under Herdr the configuration values
 (`@broadcast-excluded`, `@broadcast-picker-engine`, `@broadcast-pane-delay`)
@@ -158,6 +154,89 @@ set -g @broadcast-run-key       'd'
 set -g @broadcast-cd-picker-key 'D'
 run-shell '~/.tmux/plugins/broadmand/broadmand.tmux'
 ```
+
+## Install under Herdr
+
+Inside [Herdr](https://herdr.dev), broadmand ships a `herdr-plugin.toml`
+manifest, so it can be installed and driven from Herdr instead of only from
+`tmux.conf`. The manifest declares two popup pane entrypoints and two actions —
+one for the free-form command broadcast, one for the modal `cd` picker — both
+running the same `scripts/run-all.sh` and `scripts/cd-all.sh picker` scripts the
+tmux path uses.
+
+### Install from GitHub
+
+```sh
+herdr plugin install francjpd/broadmand
+```
+
+This clones the repo into Herdr-managed plugin storage, validates the manifest,
+and registers the plugin. Afterwards the entrypoints are available from the
+Herdr plugin UI, and the actions can be bound to keys (below).
+
+### Install from a local checkout
+
+While developing, link the working tree instead of installing from GitHub:
+
+```sh
+herdr plugin link /path/to/broadmand
+```
+
+Commands run with the plugin directory as their working directory, so the
+manifest calls the scripts by paths relative to the plugin root; the same
+manifest works from either install shape.
+
+### Keybindings
+
+Herdr reaches plugin actions through `type = "plugin_action"` keybindings. Add
+these to `~/.config/herdr/config.toml` and reload the config:
+
+```toml
+[[keys.command]]
+key = "prefix+d"
+type = "plugin_action"
+command = "broadmand.broadcast"
+
+[[keys.command]]
+key = "prefix+shift+d"
+type = "plugin_action"
+command = "broadmand.cd-picker"
+```
+
+`prefix+d` / `prefix+shift+d` mirror broadmand's tmux `prefix d` / `prefix D`.
+Change the keys if either is already bound (for example to detach in a
+tmux-style config). The action ids are the manifest's `[[actions]]` ids,
+qualified with the plugin id (`broadmand.<id>`).
+
+Without keybindings, the same actions are reachable from the CLI —
+`herdr plugin action invoke broadmand.broadcast` (or `broadmand.cd-picker`) —
+and the popup panes with
+`herdr plugin pane open --plugin broadmand --entrypoint broadcast` (or
+`cd-picker`).
+
+### Plain manual route
+
+No plugin install is required. Clone the repo anywhere and call the two scripts
+directly from inside a Herdr pane:
+
+```sh
+git clone git@github.com:francjpd/broadmand.git
+/path/to/broadmand/scripts/run-all.sh        # free-form broadcast
+/path/to/broadmand/scripts/cd-all.sh picker  # cd picker
+```
+
+### What differs from tmux
+
+- There is no `tmux.conf` and no `@broadcast-*` options under Herdr; the
+  configuration values (`@broadcast-excluded`, `@broadcast-picker-engine`,
+  `@broadcast-pane-delay`) fall back to their built-in defaults.
+- The interactive popups are Herdr plugin panes (`placement = "popup"`), opened
+  through the plugin UI, `herdr plugin pane open`, or a `plugin_action`
+  keybinding — not tmux `display-popup`.
+- Discovery: the [Herdr marketplace](https://herdr.dev/plugins/) lists public
+  GitHub repositories carrying the `herdr-plugin` topic on their default
+  branch; this repository is tagged, so `herdr plugin install
+  francjpd/broadmand` is also discoverable there.
 
 ## Configuration
 

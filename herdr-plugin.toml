@@ -1,0 +1,53 @@
+# broadmand — Herdr plugin manifest.
+#
+# Packages broadmand as an installable Herdr plugin so the two tmux behaviours
+# (the free-form command broadcast and the modal `cd` picker) can be installed
+# and driven from Herdr instead of only from tmux.conf.
+#
+# The scripts already detect Herdr (HERDR_ENV=1) and run their UI inline in the
+# pane when not under tmux, which is exactly what a Herdr plugin popup pane
+# gives them. This manifest only wires entrypoints to those scripts; it does not
+# reimplement the broadcast or picker logic.
+
+id = "broadmand"
+name = "broadmand"
+version = "0.1.0"
+min_herdr_version = "0.8.2"
+description = "Broadcast a shell command, or a picked cd, to every pane of the active workspace"
+platforms = ["linux", "macos"]
+
+# Actions are the targets for `herdr plugin action invoke` and for
+# `type = "plugin_action"` keybindings; Herdr qualifies them as
+# `broadmand.<id>`.
+[[actions]]
+id = "broadcast"
+title = "Broadcast command"
+description = "Broadcast a free-form shell command to every pane of the active workspace"
+contexts = ["workspace"]
+command = ["bash", "scripts/run-all.sh"]
+
+[[actions]]
+id = "cd-picker"
+title = "cd picker"
+description = "Pick a directory with fzf, then broadcast `cd <dir>` to every pane"
+contexts = ["workspace"]
+command = ["bash", "scripts/cd-all.sh", "picker"]
+
+# Popup pane entrypoints: `herdr plugin pane open --plugin broadmand
+# --entrypoint <id>` (or the Herdr plugin UI). Both behaviours are interactive,
+# so they open as session-modal popups and close when the command exits.
+[[panes]]
+id = "broadcast"
+title = "broadmand: broadcast command"
+placement = "popup"
+width = "60%"
+height = 8
+command = ["bash", "scripts/run-all.sh"]
+
+[[panes]]
+id = "cd-picker"
+title = "broadmand: cd picker"
+placement = "popup"
+width = "60%"
+height = 20
+command = ["bash", "scripts/cd-all.sh", "picker"]
