@@ -8,8 +8,10 @@
 # Skips panes whose current command is in the @broadcast-excluded list
 # and panes that are currently in copy mode.
 #
-# The loop reads pane ids through process substitution so the sent/skipped
-# counters stay in this shell instead of dying in a pipeline subshell.
+# The pane list is resolved into a variable before the loop, so a failure to
+# enumerate panes is fatal to this shell rather than silently broadcasting to
+# nothing, and the sent/skipped counters stay in this shell instead of dying in
+# a pipeline subshell.
 # In --dry-run mode the [done] summary is printed to stdout; otherwise the
 # summary is shown in the tmux status line with display-message, because
 # run-shell discards stderr.
@@ -38,6 +40,7 @@ PANE_DELAY_MS=$(broadcast_pane_delay)
 export PANE_DELAY_MS
 
 active_id=$(active_pane_id)
+panes=$(active_pane_ids)
 sent=0
 skipped=0
 
@@ -74,13 +77,16 @@ while IFS= read -r pid; do
 
   send_to_pane "$pid" "$line"
   sent=$((sent+1))
-done < <(active_pane_ids)
+done <<< "$panes"
 
-# Return focus to the originally active pane.
-tmux select-pane -t "$active_id" >/dev/null 2>&1 || true
+# Return focus to the originally active pane. Herdr's pane send commands do
+# not move focus, so only the tmux path needs to restore it.
+if [ "$(broadcast_multiplexer)" = "tmux" ]; then
+  tmux select-pane -t "$active_id" >/dev/null 2>&1 || true
+fi
 
 if [ "$dry_run" = "1" ]; then
   printf '[done ] sent=%d skipped=%d\n' "$sent" "$skipped"
 else
-  tmux display-message "broadmand: sent=$sent skipped=$skipped" 2>/dev/null || true
+  broadcast_status "broadmand: sent=$sent skipped=$skipped"
 fi

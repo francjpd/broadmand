@@ -21,14 +21,27 @@ trap 'rm -f "$_out"' EXIT
 
 # Run the popup from the active pane's cwd so Tab completion resolves
 # relative paths the same way the user's shell would.
-active_cwd=$(tmux display-message -p '#{pane_current_path}')
+active_cwd=$(active_pane_cwd)
+_mux=$(broadcast_multiplexer)
 
-tmux display-popup \
-  -E -w 60% -h 15% \
-  -T "broadcast command" \
-  "bash '$SCRIPT_DIR/popup.sh' '' $(shell_quote "$active_cwd") > '$_out'" || true
+if [ "$_mux" = "herdr" ]; then
+  # Herdr has no display-popup; run the single-line modal inline in the pane.
+  bash "$SCRIPT_DIR/popup.sh" '' "$active_cwd" > "$_out" || true
+else
+  tmux display-popup \
+    -E -w 60% -h 15% \
+    -T "broadcast command" \
+    "bash '$SCRIPT_DIR/popup.sh' '' $(shell_quote "$active_cwd") > '$_out'" || true
+fi
 
 command=$(cat "$_out" 2>/dev/null || true)
-[ -z "$command" ] && { tmux display-message "run-all: cancelled"; exit 0; }
+if [ -z "$command" ]; then
+  if [ "$_mux" = "herdr" ]; then
+    printf 'run-all: cancelled\n' >&2
+  else
+    tmux display-message "run-all: cancelled"
+  fi
+  exit 0
+fi
 
 bash "$SCRIPT_DIR/broadcast.sh" "$command" --include-active
