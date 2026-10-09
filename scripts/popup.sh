@@ -2,7 +2,7 @@
 # scripts/popup.sh — reusable single-line input modal with Tab completion.
 # Part of broadmand.
 #
-# Usage (inside a tmux display-popup -E):
+# Usage (inside a tmux display-popup -E, or inline in the pane under Herdr):
 #   popup.sh "<default>" [<cwd>]
 #
 # Prints the chosen value to stdout.
