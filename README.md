@@ -2,8 +2,9 @@
 
 ![broadmand logo](broadmand.png)
 
-Broadcast a shell command to every pane of the active tmux window. Ships
-with a modal-style `cd` picker and a free-form command broadcaster.
+Broadcast a shell command to every pane of the active tmux window — or,
+inside [Herdr](https://herdr.dev), every pane of the active Herdr workspace.
+Ships with a modal-style `cd` picker and a free-form command broadcaster.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -45,6 +46,40 @@ Panes running excluded commands (editors, `ssh`, `htop`, …) or currently
 in copy mode are skipped automatically. A short status message flashes
 in the tmux status line when the broadcast finishes.
 
+## Herdr support
+
+When broadmand runs inside a [Herdr](https://herdr.dev) pane — Herdr sets
+`HERDR_ENV=1` there — it targets the active Herdr workspace instead of the
+active tmux window. The free-form broadcaster and the modal `cd` picker both
+work: they enumerate the panes of the workspace the captain is currently in,
+skip panes running excluded commands, and send the command to each remaining
+pane, exactly like the tmux path targets every pane of the active window.
+
+Detection is a single check: if `HERDR_ENV` is `1`, broadmand talks to
+`herdr`; otherwise the tmux path is used unchanged. Under Herdr the scripts:
+
+- resolve the active pane with `herdr pane current --current` (its
+  `workspace_id` is the active workspace),
+- enumerate that workspace's panes with `herdr pane list --workspace <id>`,
+- read each pane's foreground command with `herdr pane process-info` for the
+  excluded-command skip, and
+- send input with `herdr pane send-keys` / `herdr pane run`.
+
+If the active workspace cannot be resolved unambiguously, broadmand fails
+with a clear message rather than broadcasting to the wrong panes.
+
+The `prefix d` / `prefix D` bindings are tmux features; under Herdr invoke the
+scripts directly (or point Herdr keybindings at them):
+
+```sh
+~/.tmux/plugins/broadmand/scripts/run-all.sh            # free-form broadcast
+~/.tmux/plugins/broadmand/scripts/cd-all.sh picker       # cd picker
+```
+
+Herdr has no `@-option` surface, so under Herdr the configuration values
+(`@broadcast-excluded`, `@broadcast-picker-engine`, `@broadcast-pane-delay`)
+fall back to the built-in defaults.
+
 ## Features
 
 - **Native Tab cycling in the command popup** — `prefix d` starts in the
@@ -71,6 +106,7 @@ in the tmux status line when the broadcast finishes.
 - `fzf` (used by the directory picker)
 - `fd` or `zoxide` (picker engine; install the one matching
   `@broadcast-picker-engine`)
+- `herdr` (optional — only for the Herdr workspace path)
 
 ### Platform support
 
@@ -139,7 +175,8 @@ drop-in config block.
 ## How it works
 
 1. `run-all.sh` / `cd-all.sh` opens a tmux popup via `display-popup -E`,
-   capturing stdout. `run-all.sh` launches the popup from the active
+   capturing stdout (under Herdr, `popup.sh` / `picker.sh` run inline in the
+   pane instead). `run-all.sh` launches the popup from the active
    pane's cwd so that `Tab` completes relative paths as expected.
 2. Inside the popup, `popup.sh` (the primitive) runs `read -e` to gather
    input, configured with a custom `INPUTRC` that enables zsh-style
@@ -167,9 +204,11 @@ bash tests/run.sh
 It runs `bash -n` on every shell file (plus ShellCheck when installed),
 the `util.sh` helper unit tests, a headless-tmux integration test for
 loading, keybindings and broadcast skip logic, the broadcast-count
-regression, a pty-driven popup test, the picker preview check, and the
-picker-stream test. `.github/workflows/ci.yml` runs the suite on Linux
-and on macOS (bash 3.2 + BSD `ls`).
+regression, a pty-driven popup test, the picker preview check, the
+picker-stream test, and a Herdr test that drives the Herdr broadcast and
+picker paths against a fake `herdr` on `PATH` (CI has no Herdr server).
+`.github/workflows/ci.yml` runs the suite on Linux and on macOS (bash 3.2 +
+BSD `ls`).
 
 ## License
 

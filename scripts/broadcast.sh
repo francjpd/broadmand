@@ -76,11 +76,14 @@ while IFS= read -r pid; do
   sent=$((sent+1))
 done < <(active_pane_ids)
 
-# Return focus to the originally active pane.
-tmux select-pane -t "$active_id" >/dev/null 2>&1 || true
+# Return focus to the originally active pane. Herdr's pane send commands do
+# not move focus, so only the tmux path needs to restore it.
+if [ "$(broadcast_multiplexer)" = "tmux" ]; then
+  tmux select-pane -t "$active_id" >/dev/null 2>&1 || true
+fi
 
 if [ "$dry_run" = "1" ]; then
   printf '[done ] sent=%d skipped=%d\n' "$sent" "$skipped"
 else
-  tmux display-message "broadmand: sent=$sent skipped=$skipped" 2>/dev/null || true
+  broadcast_status "broadmand: sent=$sent skipped=$skipped"
 fi

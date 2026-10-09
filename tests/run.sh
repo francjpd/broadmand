@@ -14,11 +14,14 @@ _base="$(mktemp -d "${TMPDIR:-/tmp}/broadmand-tests.XXXXXX")"
 export HOME="$_base/home"
 export TMPDIR="$_base/tmp"
 mkdir -p "$HOME" "$TMPDIR"
+# The tmux tests must not inherit a Herdr context (e.g. when the suite runs
+# from inside a Herdr pane); the herdr test opts in with HERDR_ENV=1 itself.
+unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID
 # shellcheck disable=SC2329  # invoked from the EXIT trap below
 cleanup() { rm -rf "$_base"; }
 trap cleanup EXIT
 
-tests=(lint util integration broadcast-counts popup picker picker-stream)
+tests=(lint util integration broadcast-counts popup picker picker-stream herdr)
 if [ "$#" -gt 0 ]; then
   tests=("$@")
 fi
