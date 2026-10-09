@@ -248,13 +248,20 @@ This manifest and install path were checked against Herdr **0.8.2**
 plugin install`, `plugin link`, `plugin action invoke`, and `plugin pane open
 --plugin <id> --entrypoint <id>` all exist. The manifest fields
 (`min_herdr_version`, `contexts`, `placement`, `width`, `height`) and the
-`type = "plugin_action"` keybinding type match the 0.8.2 plugin schema, and
-runtime commands (actions included) receive `HERDR_ENV=1` and `HERDR_BIN_PATH`.
+`type = "plugin_action"` keybinding type match the 0.8.2 plugin schema.
 
-The interactive popup flow (opening a popup pane and driving the
-broadcaster/picker) was not exercised headlessly, since it needs a running
-Herdr session and a terminal; `plugin install`/`link` were not run so as not to
-mutate the local Herdr state.
+The action execution environment was observed at runtime: a throwaway probe
+plugin was linked in the Herdr session and its action invoked with `herdr
+plugin action invoke dump-env --plugin herdr-action-probe`. The action's own
+environment dump showed `HERDR_ENV=1`, `HERDR_BIN_PATH=/usr/bin/herdr` (an
+executable file), and `HERDR_PLUGIN_ID`, `HERDR_PLUGIN_ACTION_ID`,
+`HERDR_PLUGIN_ROOT`, `HERDR_SOCKET_PATH`, and `HERDR_SESSION` all set, with the
+plugin directory as the working directory and `command -v herdr` resolving to
+`/usr/bin/herdr` on `PATH`.
+
+Not exercised headlessly: opening a popup pane by a real keypress and driving
+the broadcaster/picker (both need a running Herdr session and a terminal), and
+the marketplace listing.
 
 ## Configuration
 
