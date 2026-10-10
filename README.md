@@ -319,8 +319,9 @@ It runs `bash -n` on every shell file (plus ShellCheck when installed),
 the `util.sh` helper unit tests, a headless-tmux integration test for
 loading, keybindings and broadcast skip logic, the broadcast-count
 regression, a pty-driven popup test, the picker preview check, the
-picker-stream test, and a Herdr test that drives the Herdr broadcast and
-picker paths against a fake `herdr` on `PATH` (CI has no Herdr server).
+picker-stream test, a manifest test that parses `herdr-plugin.toml` and
+checks its command paths, and a Herdr test that drives the Herdr broadcast
+and picker paths against a fake `herdr` on `PATH` (CI has no Herdr server).
 `.github/workflows/ci.yml` runs the suite on Linux and on macOS (bash 3.2 +
 BSD `ls`).
 
