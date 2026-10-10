@@ -21,7 +21,7 @@ unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID
 cleanup() { rm -rf "$_base"; }
 trap cleanup EXIT
 
-tests=(lint util integration broadcast-counts popup picker picker-stream herdr)
+tests=(lint manifest util integration broadcast-counts popup picker picker-stream herdr)
 if [ "$#" -gt 0 ]; then
   tests=("$@")
 fi

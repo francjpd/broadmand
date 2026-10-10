@@ -68,13 +68,9 @@ Detection is a single check: if `HERDR_ENV` is `1`, broadmand talks to
 If the active workspace cannot be resolved unambiguously, broadmand fails
 with a clear message rather than broadcasting to the wrong panes.
 
-The `prefix d` / `prefix D` bindings are tmux features; under Herdr invoke the
-scripts directly (or point Herdr keybindings at them):
-
-```sh
-~/.tmux/plugins/broadmand/scripts/run-all.sh            # free-form broadcast
-~/.tmux/plugins/broadmand/scripts/cd-all.sh picker       # cd picker
-```
+The `prefix d` / `prefix D` bindings are tmux features; under Herdr the same two
+behaviours are installed and bound through the plugin entrypoints, actions, and
+keybindings described under [Install under Herdr](#install-under-herdr).
 
 Herdr has no `@-option` surface, so under Herdr the configuration values
 (`@broadcast-excluded`, `@broadcast-picker-engine`, `@broadcast-pane-delay`)
@@ -159,6 +155,124 @@ set -g @broadcast-cd-picker-key 'D'
 run-shell '~/.tmux/plugins/broadmand/broadmand.tmux'
 ```
 
+## Install under Herdr
+
+Inside [Herdr](https://herdr.dev), broadmand ships a `herdr-plugin.toml`
+manifest, so it can be installed and driven from Herdr instead of only from
+`tmux.conf`. The manifest declares two popup pane entrypoints — one for the
+free-form command broadcast, one for the modal `cd` picker — that run the same
+`scripts/run-all.sh` and `scripts/cd-all.sh picker` scripts the tmux path uses.
+Two matching actions open those popup panes, so a `plugin_action` keybinding can
+reach them.
+
+### Install from GitHub
+
+```sh
+herdr plugin install francjpd/broadmand
+```
+
+This clones the repo into Herdr-managed plugin storage, validates the manifest,
+and registers the plugin. Afterwards the entrypoints are available from the
+Herdr plugin UI, and the actions can be bound to keys (below).
+
+### Install from a local checkout
+
+While developing, link the working tree instead of installing from GitHub:
+
+```sh
+herdr plugin link /path/to/broadmand
+```
+
+Commands run with the plugin directory as their working directory, so the
+manifest calls the scripts by paths relative to the plugin root; the same
+manifest works from either install shape.
+
+### Keybindings
+
+Herdr reaches plugin actions through `type = "plugin_action"` keybindings. Add
+these to `~/.config/herdr/config.toml` and reload the config:
+
+```toml
+[[keys.command]]
+key = "prefix+d"
+type = "plugin_action"
+command = "broadmand.broadcast"
+
+[[keys.command]]
+key = "prefix+shift+d"
+type = "plugin_action"
+command = "broadmand.cd-picker"
+```
+
+`prefix+d` / `prefix+shift+d` mirror broadmand's tmux `prefix d` / `prefix D`.
+Change the keys if either is already bound (for example to detach in a
+tmux-style config). The action ids are the manifest's `[[actions]]` ids,
+qualified with the plugin id (`broadmand.<id>`). Each action opens the
+corresponding popup pane, so pressing the key shows the same interactive popup
+as the tmux binding.
+
+Without keybindings, the same actions are reachable from the CLI —
+`herdr plugin action invoke broadmand.broadcast` (or `broadmand.cd-picker`) —
+and the popup panes with
+`herdr plugin pane open --plugin broadmand --entrypoint broadcast` (or
+`cd-picker`).
+
+### Plain manual route
+
+No plugin install is required. Clone the repo anywhere and call the two scripts
+directly from inside a Herdr pane:
+
+```sh
+git clone git@github.com:francjpd/broadmand.git
+/path/to/broadmand/scripts/run-all.sh        # free-form broadcast
+/path/to/broadmand/scripts/cd-all.sh picker  # cd picker
+```
+
+### What differs from tmux
+
+- There is no `tmux.conf` and no `@broadcast-*` options under Herdr; the
+  configuration values (`@broadcast-excluded`, `@broadcast-picker-engine`,
+  `@broadcast-pane-delay`) fall back to their built-in defaults.
+- The interactive popups are Herdr plugin panes (`placement = "popup"`), opened
+  through the plugin UI, `herdr plugin pane open`, or a `plugin_action`
+  keybinding — not tmux `display-popup`.
+- Discovery: the [Herdr marketplace](https://herdr.dev/plugins/) lists public
+  GitHub repositories carrying the `herdr-plugin` topic on their default
+  branch; this repository is tagged, so `herdr plugin install
+  francjpd/broadmand` is also discoverable there.
+
+### Verified against Herdr
+
+This manifest and install path were checked against Herdr **0.8.2**
+(`herdr --version`). The CLI surface was confirmed on that binary: `herdr
+plugin install`, `plugin link`, `plugin action invoke`, and `plugin pane open
+--plugin <id> --entrypoint <id>` all exist. The manifest fields
+(`min_herdr_version`, `contexts`, `placement`, `width`, `height`) and the
+`type = "plugin_action"` keybinding type match the 0.8.2 plugin schema.
+
+The action execution environment was observed at runtime: a throwaway probe
+plugin was linked in the Herdr session and its action invoked with `herdr
+plugin action invoke dump-env --plugin herdr-action-probe`. The action's own
+environment dump showed `HERDR_ENV=1`, `HERDR_BIN_PATH=/usr/bin/herdr` (an
+executable file), and `HERDR_PLUGIN_ID`, `HERDR_PLUGIN_ACTION_ID`,
+`HERDR_PLUGIN_ROOT`, `HERDR_SOCKET_PATH`, `HERDR_WORKSPACE_ID`, `HERDR_TAB_ID`,
+and `HERDR_PANE_ID` all set, with the
+plugin directory as the working directory and `command -v herdr` resolving to
+`/usr/bin/herdr` on `PATH`.
+
+A popup pane was also opened in the isolated Herdr session and its process
+environment observed. Inside an open popup, `herdr pane current --current`
+reports the underlying focused pane, not the popup itself: in that session it
+returned `pane_id = w1:p1` with `foreground_cwd = /home/francjpd` (the pane the
+popup opened over), even though the popup process's own working directory is the
+plugin directory. broadmand therefore seeds the broadcaster and picker from the
+invoking pane's cwd, so relative-path Tab completion and the picker base
+directory behave like the tmux path.
+
+Not exercised: typing into the popup to drive the broadcaster/picker end to end
+(needs a real interactive keypress in a foreground terminal), and the
+marketplace listing.
+
 ## Configuration
 
 | Option                          | Default                                          | Description                                  |
@@ -205,8 +319,9 @@ It runs `bash -n` on every shell file (plus ShellCheck when installed),
 the `util.sh` helper unit tests, a headless-tmux integration test for
 loading, keybindings and broadcast skip logic, the broadcast-count
 regression, a pty-driven popup test, the picker preview check, the
-picker-stream test, and a Herdr test that drives the Herdr broadcast and
-picker paths against a fake `herdr` on `PATH` (CI has no Herdr server).
+picker-stream test, a manifest test that parses `herdr-plugin.toml` and
+checks its command paths, and a Herdr test that drives the Herdr broadcast
+and picker paths against a fake `herdr` on `PATH` (CI has no Herdr server).
 `.github/workflows/ci.yml` runs the suite on Linux and on macOS (bash 3.2 +
 BSD `ls`).
 

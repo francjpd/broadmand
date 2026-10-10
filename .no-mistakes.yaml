@@ -1,0 +1,20 @@
+# no-mistakes per-repo configuration for broadmand.
+#
+# Pin the local Test step to the repository's own hermetic suite so the
+# validation agent runs deterministic tests instead of improvising live
+# checks. tests/run.sh stubs `herdr` and uses an isolated tmux server, so it
+# never touches a running Herdr or tmux session.
+#
+# no-mistakes reads `commands` and `test.instructions` only from the trusted
+# default-branch copy of this file, so these values take effect once this file
+# is merged into `main`.
+commands:
+  test: "bash tests/run.sh"
+
+test:
+  instructions: |
+    The repository's tests are hermetic: tests/run.sh stubs `herdr` and uses an
+    isolated tmux server, so it never touches a running Herdr or tmux session.
+    Do not link this plugin into a live Herdr session - the plugin registry is
+    global, so a link is visible in the operator's running session. Exercise
+    any live Herdr behaviour only inside a throwaway named non-default session.
