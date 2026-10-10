@@ -255,7 +255,8 @@ plugin was linked in the Herdr session and its action invoked with `herdr
 plugin action invoke dump-env --plugin herdr-action-probe`. The action's own
 environment dump showed `HERDR_ENV=1`, `HERDR_BIN_PATH=/usr/bin/herdr` (an
 executable file), and `HERDR_PLUGIN_ID`, `HERDR_PLUGIN_ACTION_ID`,
-`HERDR_PLUGIN_ROOT`, `HERDR_SOCKET_PATH`, and `HERDR_SESSION` all set, with the
+`HERDR_PLUGIN_ROOT`, `HERDR_SOCKET_PATH`, `HERDR_WORKSPACE_ID`, `HERDR_TAB_ID`,
+and `HERDR_PANE_ID` all set, with the
 plugin directory as the working directory and `command -v herdr` resolving to
 `/usr/bin/herdr` on `PATH`.
 
