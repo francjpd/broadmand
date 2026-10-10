@@ -260,9 +260,18 @@ and `HERDR_PANE_ID` all set, with the
 plugin directory as the working directory and `command -v herdr` resolving to
 `/usr/bin/herdr` on `PATH`.
 
-Not exercised headlessly: opening a popup pane by a real keypress and driving
-the broadcaster/picker (both need a running Herdr session and a terminal), and
-the marketplace listing.
+A popup pane was also opened in the isolated Herdr session and its process
+environment observed. Inside an open popup, `herdr pane current --current`
+reports the underlying focused pane, not the popup itself: in that session it
+returned `pane_id = w1:p1` with `foreground_cwd = /home/francjpd` (the pane the
+popup opened over), even though the popup process's own working directory is the
+plugin directory. broadmand therefore seeds the broadcaster and picker from the
+invoking pane's cwd, so relative-path Tab completion and the picker base
+directory behave like the tmux path.
+
+Not exercised: typing into the popup to drive the broadcaster/picker end to end
+(needs a real interactive keypress in a foreground terminal), and the
+marketplace listing.
 
 ## Configuration
 
